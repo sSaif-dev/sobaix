@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+
+// UserName must be unique 
+
+model User {
+  Id Int @id @default(autoincrement())
+  UserName String @unique
+  Password String?
+  Role Role
+  
+
+  CreatedItems Item[]
+  CustomerProfile CustomerProfile?
+  ExternalIdentities ExternalIdentity[]
+}
+
+
+model ExternalIdentity{
+  Id Int @id @default(autoincrement())
+  UserId Int 
+  Provider String 
+  Issuer String 
+  Subject String 
+
+  User User @relation(fields: [UserId], references: [Id] )
+
+  @@unique([Issuer,Subject])
+  @@index([UserId])
+}
+
+
+enum Role{
+  User
+  Admin
+  SuperAdmin
+}
+
+// User could have a customer profile record, and couldn't have
+
+model CustomerProfile {
+  Id Int @id @default(autoincrement())
+  Name String 
+  PhoneNumber String 
+  UserId Int @unique 
+  CustomerAddresses CustomerAddress[]
+  
+
+  Orders Order[]
+  User User @relation(fields: [UserId], references: [Id])
+
+}
+
+
+model CustomerAddress{
+  Id Int @id @default(autoincrement())
+  CustomerProfileId Int 
+  Label String 
+  RecipientName String 
+  RecipientPhone String 
+  AddressLine String 
+  City String 
+  Governorate String 
+  PostalCode String? 
+  CreatedAt DateTime @default(now())
+  UpdatedAt DateTime @updatedAt
+
+  CustomerProfile CustomerProfile @relation(fields: [CustomerProfileId], references: [Id])
+
+}
+
+
+model Category{
+  Id Int @id @default(autoincrement())
+  Name String
+  Items Item[]
+}
+
+
+model Item{
+  Id Int @id @default(autoincrement())
+  Title String
+  Description String
+  Price Decimal @db.Decimal(12,2)
+  CreatedAt DateTime @default(now())
+  UpdatedAt DateTime @updatedAt
+  CreatedBy Int 
+  
+
+  Categories Category[]
+  Colours ItemColour[]
+  Sizes ItemSize[]
+  Variants ItemVariant[]
+  User User @relation(fields: [CreatedBy], references: [Id]) 
+}
+
+
+model ItemImage {
+  Id Int @id @default(autoincrement())
+  ItemColourId Int 
+  Url String 
+  SortIndex Int
+  AltText String
+
+  ItemColour ItemColour @relation(fields: [ItemColourId], references: [Id])
+}
+
+
+model ItemColour{
+
+  Id Int @id @default(autoincrement())
+  Name String 
+  ItemId Int 
+  HexCode String
+
+  Variants ItemVariant[]
+  Images ItemImage[]
+  Item Item @relation(fields: [ItemId], references: [Id])
+  
+  @@unique([ItemId,Name])
+}
+
+model ItemSize{
+
+  Id Int @id @default(autoincrement())
+  Name String
+  ItemId Int 
+
+  Variants ItemVariant[]
+  Item Item @relation(fields: [ItemId], references: [Id])
+  @@unique([ItemId, Name])
+}
+
+
+model ItemVariant{
+  Id Int @id @default(autoincrement())
+  ItemId Int 
+  ItemSizeId Int
+  ItemColourId Int 
+  Quantity Int
+
+  OrderItems OrderItem[]
+  Item Item @relation(fields: [ItemId], references: [Id])
+  ItemSize ItemSize @relation(fields: [ItemSizeId], references: [Id])
+  ItemColour ItemColour @relation(fields: [ItemColourId], references: [Id])
+
+  @@unique([ItemId, ItemSizeId, ItemColourId])
+
+}
+
+
+
+model OrderItem{
+
+  Id Int @id @default(autoincrement())
+  OrderId Int 
+  ItemVariantId Int 
+  ProductTitle String 
+  SizeName String 
+  ColourName String 
+  Quantity Int 
+  UnitPrice Decimal @db.Decimal(12,2) 
+
+  Order Order @relation(fields: [OrderId], references: [Id])
+  ItemVariant ItemVariant @relation(fields: [ItemVariantId], references: [Id])
+
+}
+
+
+model Order{
+  Id Int @id @default(autoincrement())
+  OrderNumber String @unique
+  CustomerProfileId Int 
+  RecipientName String 
+  RecipientPhone String 
+  AddressLine String 
+  City String 
+  Governorate String 
+  PostalCode String? 
+  PaymentMethod PaymentMethod
+  PaymentStatus PaymentStatus
+  Status Status
+  SubTotal Decimal @db.Decimal(12,2)
+  DeliveryFees Decimal @db.Decimal(12,2) 
+  Discount Decimal @db.Decimal(12,2) 
+  TotalAmount Decimal @db.Decimal(12,2) 
+  CreatedAt DateTime @default(now())
+
+  OrderItems OrderItem[]
+  CustomerProfile CustomerProfile @relation(fields: [CustomerProfileId], references: [Id])
+
+}
+
+enum PaymentMethod{
+  CashOnDelivery 
+  Visa
+}
+
+enum PaymentStatus{
+  Pending
+  Accepted
+  Cancelled
+}
+
+enum Status{
+  Pending
+  Processing
+  Shipped
+  Delivered
+  Cancelled
+}
+
+
