@@ -26,10 +26,11 @@ export function createAccessToken(userId: number) {
         return result;
 
     } catch (error) {
-        throw new Error("Error signing the jwt key")
+        throw new Error("Error creating the access token")
     }
 
 }
+
 
 export async function verifyAccessToken(token: string) {
 

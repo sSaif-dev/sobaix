@@ -27,8 +27,41 @@ model User {
   CreatedItems Item[]
   CustomerProfile CustomerProfile?
   ExternalIdentities ExternalIdentity[]
+  UserSessions UserSession[]
 }
 
+model UserSession{
+  Id Int @id @default(autoincrement())
+  UserId Int 
+
+  DeviceLabel String?
+  UserAgent String?
+  IpAddress String?
+
+  CreatedAt DateTime @default(now())
+  LastSeenAt DateTime @default(now())
+  ExpiresAt DateTime 
+  RevokedAt DateTime?
+
+  User User @relation(fields: [UserId], references: [Id])
+  RefreshTokens RefreshToken[]
+  @@index([UserId])
+
+}
+
+model RefreshToken{
+  Id Int @id @default(autoincrement())
+  SessionId Int 
+
+  TokenHash String @unique
+  CreatedAt DateTime @default(now())
+  ExpiresAt DateTime
+  UsedAt DateTime?
+
+  Session UserSession @relation(fields: [SessionId], references: [Id])
+
+  @@index([SessionId])
+}
 
 model ExternalIdentity{
   Id Int @id @default(autoincrement())
