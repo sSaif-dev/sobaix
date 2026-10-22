@@ -23,7 +23,7 @@ export async function requireLogin(req:Request,res:Response,next:NextFunction){
       const userId = Number(payload.sub)
       if (!Number.isSafeInteger(userId)){
 
-        return res.status(400).json({
+        return res.status(401).json({
             message:"Get back to login"
         })
 
@@ -37,7 +37,7 @@ export async function requireLogin(req:Request,res:Response,next:NextFunction){
       next()
     } catch (error) {
 
-        throw new Error ("Error on require login middleware.")
+      throw new Error ("Error on require login middleware.")
         
     }
 
