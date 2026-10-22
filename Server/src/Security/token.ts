@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { SignJWT, jwtVerify} from 'jose'
-import { jwt, number } from 'zod';
+import {randomBytes,createHash} from "node:crypto"
 
 const JwtKey = process.env.JWT_KEY;
 
@@ -8,13 +8,13 @@ if(!JwtKey){
     throw new Error("There aren't any JwtSecret in env files")
 }
 
-const key = Buffer.from(JwtKey,'hex')
+const key = Buffer.from(JwtKey,'hex') 
 
-export function createAccessToken(userId: number) {
+export function createAccessToken(userId: number, sessionId: number) {
 
     try {
 
-        const result = new SignJWT({})
+        const result = new SignJWT({sid:sessionId})
         .setProtectedHeader({alg: 'HS256',typ:"JWT"} )
         .setSubject(String(userId))
         .setIssuedAt()
@@ -40,7 +40,7 @@ export async function verifyAccessToken(token: string) {
             algorithms: ["HS256"],
             audience: "sobaixAudience",
             issuer: "sobaixIssuer",
-            requiredClaims: ["sub","iat","exp"]
+            requiredClaims: ["sub","iat","exp","sid"]
         })
 
         return payload;
@@ -52,6 +52,17 @@ export async function verifyAccessToken(token: string) {
 }
 
 
+
+export function createRefreshToken(){
+    return randomBytes(32).toString("base64url")
+
+}
+
+export function hashRefreshToken(token: string){
+    return createHash("sha256")
+    .update(token)
+    .digest("hex")
+}
 
 
 

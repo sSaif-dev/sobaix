@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { LoginMethod, SignUpMethod } from "./Auth.service";
+import { LoginService, refreshTokenService, SignUpService } from "./Auth.service";
 import { LoginSchema, SignUpSchema } from "./Auth.DTOs";
 
 
@@ -18,7 +18,12 @@ export async function Login(req: Request, res: Response, next: NextFunction) {
             })
         }
 
-        const loginResult = await LoginMethod(result.data);
+        const sessionDetails = {
+            IpAddress: req.ip ?? "",
+            UserAgent: req.get("user-agent") ?? ""
+        }
+
+        const loginResult = await LoginService(result.data,sessionDetails);
 
         if (loginResult === null) {
 
@@ -28,13 +33,19 @@ export async function Login(req: Request, res: Response, next: NextFunction) {
         }
 
         res.locals.userId = loginResult.userId;
-        
+        res.cookie("rt",loginResult.RefreshToken,{
+            httpOnly: true,
+            path: '/auth',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+
         return res.status(200).json({
             message: "Login successfully",
-            Token: loginResult!.token
+            Token: loginResult!.AccessToken
         })
 
     } catch (error) {
+        next(error)
 
     }
 
@@ -51,7 +62,7 @@ export async function SignUp(req: Request, res: Response, next: NextFunction) {
             })
         }
 
-        const user = await SignUpMethod(result.data);
+        const user = await SignUpService(result.data);
 
 
         if(user == null){
@@ -68,7 +79,51 @@ export async function SignUp(req: Request, res: Response, next: NextFunction) {
 
 
     } catch (error) {
+        next(error)
 
     }
+
+}
+
+
+export async function refreshAccessToken(req:Request,res:Response,next:NextFunction){
+
+    try {
+        
+        const refreshToken = req.cookies?.rt 
+        
+        if(typeof(refreshToken) !== "string" || refreshToken.length === 0){
+
+            return res.status(401).json({
+                message:"Please login again."
+            })
+            
+        }
+
+       const result =  await refreshTokenService(refreshToken);
+
+       if(result === null){
+
+            return res.status(401).json({
+                message:"Please login again."
+            })
+
+       }
+
+       res.cookie("rt",result.RefreshToken,{
+            httpOnly: true,
+            path: '/auth',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+
+
+        return res.status(200).json({
+            AccessToken: result.AccessToken
+        })
+
+    } catch (error) {
+        next(error)
+    }
+
 
 }

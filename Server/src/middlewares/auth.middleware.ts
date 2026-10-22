@@ -1,6 +1,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../Security/token";
+import { isValidSessionIdService } from "../modules/Auth/Auth.service";
 
 
 
@@ -12,7 +13,6 @@ export async function requireLogin(req:Request,res:Response,next:NextFunction){
       const authorization = req.get('authorization');
       const match = authorization?.match(/^Bearer\s+(\S+)$/i);
 
-      console.log(match)
       if(!match){
         return res.status(401).json({
             message:"You have to login first"
@@ -28,6 +28,11 @@ export async function requireLogin(req:Request,res:Response,next:NextFunction){
         })
 
       }
+
+      const isValidSession = await isValidSessionIdService(Number(payload["sid"]), Number(payload.sub))
+
+      
+
       res.locals.userId = userId;
       next()
     } catch (error) {
